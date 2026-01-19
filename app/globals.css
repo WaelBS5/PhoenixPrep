@@ -1,26 +1,148 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 210 40% 98%;
+    --foreground: 215 25% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    --primary: 330 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 215 25% 15%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 15% 45%;
+    --accent: 330 85% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 330 85% 55%;
+    --radius: 1rem;
+    
+    --cta: 0 75% 55%;
+    --cta-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 215 45% 12%;
+    --foreground: 210 40% 98%;
+    --card: 215 40% 16%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 40% 16%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 330 85% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 35% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 35% 22%;
+    --muted-foreground: 210 20% 65%;
+    --accent: 330 85% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 30% 22%;
+    --input: 215 30% 22%;
+    --ring: 330 85% 60%;
+    
+    --cta: 0 72% 55%;
+    --cta-foreground: 0 0% 100%;
+
+    --sidebar-background: 215 45% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 330 85% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 35% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 30% 20%;
+    --sidebar-ring: 330 85% 60%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    @apply bg-gradient-to-r from-pink-400 via-pink-500 to-rose-500 bg-clip-text text-transparent;
+  }
+
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-border/40 shadow-xl;
+  }
+
+  .glow-border {
+    @apply relative;
+  }
+
+  .glow-border::before {
+    content: '';
+    @apply absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(330 85% 60% / 0.3), hsl(330 85% 60% / 0.1));
+  }
+
+  .glow-border:hover::before {
+    @apply opacity-100;
+  }
+
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(330 85% 60% / 0.12), transparent);
+  }
+
+  .section-fade {
+    background: linear-gradient(180deg, transparent, hsl(215 45% 12% / 0.5), transparent);
+  }
+
+  .bg-gradient-navy {
+    background: linear-gradient(180deg, hsl(215 45% 12%) 0%, hsl(200 35% 18%) 100%);
+  }
+
+  .card-teal {
+    @apply bg-gradient-to-br from-[hsl(200_30%_22%)] to-[hsl(200_35%_26%)] border border-[hsl(200_25%_30%)] shadow-lg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
