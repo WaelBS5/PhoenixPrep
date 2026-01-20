@@ -1,7 +1,9 @@
 // MCP Client for Phoenix/HG Insights
 // Implements a minimal MCP protocol client with fallback mocked responses
+// Following HG Insights best practices for rate limiting, caching, and error handling
 
 import type { MCPTool, MCPPrompt } from './types';
+import { phoenixCache, callWithRetry, requestTracker } from './phoenixUtils';
 
 const MCP_ENDPOINT = process.env.MCP_ENDPOINT || '';
 
@@ -90,70 +92,107 @@ export async function listTools(): Promise<MCPTool[]> {
 
 /**
  * Call an MCP tool using JSON-RPC 2.0 protocol
+ * Implements HG Insights best practices: caching, retry logic, rate tracking
  */
 export async function callTool(name: string, args: Record<string, any>): Promise<any> {
+    // Track request for rate limit monitoring
+    requestTracker.track(name);
+
+    // Check cache first (HG Insights best practice)
+    const cacheKey = phoenixCache.getCacheKey(name, args);
+    const cachedResult = phoenixCache.get(cacheKey, phoenixCache.getTTL(name));
+
+    if (cachedResult) {
+        return cachedResult;
+    }
+
     if (USE_MOCK) {
-        return getMockedToolResult(name, args);
+        const mockResult = getMockedToolResult(name, args);
+        // Cache mocked results too
+        phoenixCache.set(cacheKey, mockResult);
+        return mockResult;
     }
 
-    try {
-        console.log(`🚀 EXECUTING TOOL: ${name}`);
-        console.log(`📥 Arguments:`, JSON.stringify(args, null, 2));
+    // Use retry logic with exponential backoff (HG Insights best practice)
+    return callWithRetry(
+        async () => {
+            console.log(`🚀 EXECUTING TOOL: ${name}`);
+            console.log(`📥 Arguments:`, JSON.stringify(args, null, 2));
 
-        // Phoenix MCP requires both application/json and text/event-stream
-        const response = await fetch(MCP_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json, text/event-stream',
-            },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'tools/call',
-                params: {
-                    name: name,
-                    arguments: args,
+            // Phoenix MCP requires both application/json and text/event-stream
+            const response = await fetch(MCP_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json, text/event-stream',
                 },
-                id: Date.now(),
-            }),
-        });
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'tools/call',
+                    params: {
+                        name: name,
+                        arguments: args,
+                    },
+                    id: Date.now(),
+                }),
+            });
 
-        if (!response.ok) {
-            console.warn(`MCP tool call failed with ${response.status}, using mocked result`);
-            return getMockedToolResult(name, args);
-        }
-
-        const text = await response.text();
-
-        // Check if response is HTML
-        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-            console.warn('MCP endpoint returned HTML, using mocked result');
-            return getMockedToolResult(name, args);
-        }
-
-        // Parse SSE format
-        let jsonText = text;
-        if (text.startsWith('event:')) {
-            const lines = text.split('\n');
-            const dataLine = lines.find(line => line.startsWith('data: '));
-            if (dataLine) {
-                jsonText = dataLine.substring(6);
+            if (!response.ok) {
+                console.warn(`MCP tool call failed with ${response.status}, using mocked result`);
+                const mockResult = getMockedToolResult(name, args);
+                phoenixCache.set(cacheKey, mockResult);
+                return mockResult;
             }
+
+            const text = await response.text();
+
+            // Check if response is HTML
+            if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                console.warn('MCP endpoint returned HTML, using mocked result');
+                const mockResult = getMockedToolResult(name, args);
+                phoenixCache.set(cacheKey, mockResult);
+                return mockResult;
+            }
+
+            // Parse SSE format
+            let jsonText = text;
+            if (text.startsWith('event:')) {
+                const lines = text.split('\n');
+                const dataLine = lines.find(line => line.startsWith('data: '));
+                if (dataLine) {
+                    jsonText = dataLine.substring(6);
+                }
+            }
+
+            const data = JSON.parse(jsonText);
+
+            // MCP JSON-RPC response format
+            if (data.result) {
+                console.log(`✅ TOOL SUCCESS: ${name}`);
+                const result = data.result.content || data.result;
+
+                // Cache successful result (HG Insights best practice)
+                phoenixCache.set(cacheKey, result);
+
+                return result;
+            }
+
+            if (data.error) {
+                console.error('❌ MCP Error:', data.error);
+                throw new Error(`MCP Error: ${data.error.message || JSON.stringify(data.error)}`);
+            }
+
+            // Unexpected format, return mocked result
+            const mockResult = getMockedToolResult(name, args);
+            phoenixCache.set(cacheKey, mockResult);
+            return mockResult;
+        },
+        {
+            maxRetries: 3,
+            toolName: name,
+            params: args,
         }
-
-        const data = JSON.parse(jsonText);
-
-        // MCP JSON-RPC response format
-        if (data.result) {
-            console.log(`✅ TOOL SUCCESS: ${name}`);
-            return data.result.content || data.result;
-        }
-
-        return getMockedToolResult(name, args);
-    } catch (error) {
-        console.error(`Error calling tool ${name}:`, error);
-        return getMockedToolResult(name, args);
-    }
+    );
 }
 
 /**
@@ -360,50 +399,145 @@ function getMockedPrompts(): MCPPrompt[] {
 }
 
 function getMockedToolResult(name: string, args: Record<string, any>): any {
+    // Helper to wrap response in MCP format
+    const wrapInMCPFormat = (data: any) => ({
+        type: 'text',
+        text: JSON.stringify(data, null, 2)
+    });
+
     switch (name) {
         case 'company_firmographic':
-            return {
-                company_name: args.company_name || 'Example Corp',
-                domain: args.domain || 'example.com',
-                industry: 'Technology',
-                employee_count: 5000,
-                revenue: '$500M - $1B',
-                headquarters: 'San Francisco, CA',
-                founded: 2010,
-            };
-
         case 'company_technographic':
-            return {
-                domain: args.domain,
-                technologies: [
-                    { name: 'Salesforce', category: 'CRM', adoption_date: '2020-01' },
-                    { name: 'AWS', category: 'Cloud Infrastructure', adoption_date: '2019-06' },
-                    { name: 'Slack', category: 'Collaboration', adoption_date: '2021-03' },
-                ],
-                tech_stack_score: 85,
-            };
+        case 'company_cloud_spend':
+        case 'company_spend':
+        case 'company_fai':
+            // Extract company name from domain
+            const domain = args.domain || args.companyDomain || 'salesforce.com';
+            const companyName = domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1);
 
+            return wrapInMCPFormat({
+                company: {
+                    name: companyName,
+                    website: domain,
+                    logo: `https://cdn.intricately.com/logos/${domain.split('.')[0]}.png`
+                },
+                technologyServices: [
+                    {
+                        serviceName: 'Cloud Hosting',
+                        vendors: [
+                            {
+                                vendorName: 'Amazon EC2',
+                                vendorLogo: 'https://cdn.intricately.com/logos/amazon-ec2.png',
+                                firstSeen: '02/27/13',
+                                estimatedMonthlySpend: 359700
+                            },
+                            {
+                                vendorName: 'AWS Lambda',
+                                vendorLogo: 'https://cdn.intricately.com/logos/aws-lambda.png',
+                                firstSeen: '12/19/14',
+                                estimatedMonthlySpend: 354300
+                            },
+                            {
+                                vendorName: 'Amazon S3',
+                                vendorLogo: 'https://cdn.intricately.com/logos/amazon-s3.png',
+                                firstSeen: '07/25/14',
+                                estimatedMonthlySpend: 88700
+                            }
+                        ]
+                    },
+                    {
+                        serviceName: 'SaaS',
+                        vendors: [
+                            {
+                                vendorName: 'Salesforce CRM',
+                                vendorLogo: 'https://cdn.intricately.com/logos/salesforce.png',
+                                firstSeen: '01/15/20',
+                                estimatedMonthlySpend: 125000
+                            },
+                            {
+                                vendorName: 'Slack Technologies',
+                                vendorLogo: 'https://cdn.intricately.com/logos/slack.png',
+                                firstSeen: '08/01/19',
+                                estimatedMonthlySpend: 45000
+                            },
+                            {
+                                vendorName: 'Google Workspace',
+                                vendorLogo: 'https://cdn.intricately.com/logos/google-workspace.png',
+                                firstSeen: '03/12/18',
+                                estimatedMonthlySpend: 78000
+                            }
+                        ]
+                    },
+                    {
+                        serviceName: 'Data Center Hosting',
+                        vendors: [
+                            {
+                                vendorName: companyName,
+                                vendorLogo: `https://cdn.intricately.com/logos/${domain.split('.')[0]}.png`,
+                                firstSeen: '10/15/13',
+                                estimatedMonthlySpend: 2500000
+                            }
+                        ]
+                    },
+                    {
+                        serviceName: 'Content Delivery',
+                        vendors: [
+                            {
+                                vendorName: 'Akamai',
+                                vendorLogo: 'https://cdn.intricately.com/logos/akamai.png',
+                                firstSeen: '03/28/15',
+                                estimatedMonthlySpend: 450000
+                            },
+                            {
+                                vendorName: 'Cloudflare',
+                                vendorLogo: 'https://cdn.intricately.com/logos/cloudflare-inc.png',
+                                firstSeen: '01/29/15',
+                                estimatedMonthlySpend: 125000
+                            }
+                        ]
+                    },
+                    {
+                        serviceName: 'Cyber Security',
+                        vendors: [
+                            {
+                                vendorName: 'CrowdStrike',
+                                vendorLogo: 'https://cdn.intricately.com/logos/crowdstrike.png',
+                                firstSeen: '05/01/17',
+                                estimatedMonthlySpend: 95000
+                            },
+                            {
+                                vendorName: 'Palo Alto Networks',
+                                vendorLogo: 'https://cdn.intricately.com/logos/palo-alto-networks.png',
+                                firstSeen: '12/01/16',
+                                estimatedMonthlySpend: 180000
+                            }
+                        ]
+                    }
+                ]
+            });
+
+        case 'search_companies':
         case 'company_search':
-            return {
+            return wrapInMCPFormat({
                 results: [
                     { company_name: 'TechCorp A', domain: 'techcorpa.com', employees: 250, industry: 'SaaS' },
                     { company_name: 'TechCorp B', domain: 'techcorpb.com', employees: 450, industry: 'SaaS' },
                     { company_name: 'TechCorp C', domain: 'techcorpc.com', employees: 180, industry: 'SaaS' },
                 ],
                 total: 3,
-            };
+            });
 
         case 'company_intent':
-            return {
+            return wrapInMCPFormat({
                 domain: args.domain,
                 intent_signals: [
                     { topic: 'CRM Migration', score: 78, trend: 'increasing', last_seen: '2026-01-15' },
                     { topic: 'Data Analytics', score: 65, trend: 'stable', last_seen: '2026-01-18' },
                 ],
-            };
+            });
 
         case 'list_product_categories':
-            return {
+            return wrapInMCPFormat({
                 categories: [
                     'CRM',
                     'Marketing Automation',
@@ -412,10 +546,13 @@ function getMockedToolResult(name: string, args: Record<string, any>): any {
                     'Collaboration Tools',
                     'Security',
                 ],
-            };
+            });
 
         default:
-            return { message: `Mocked result for ${name}`, arguments: args };
+            return wrapInMCPFormat({
+                message: `Mocked result for ${name}`,
+                arguments: args
+            });
     }
 }
 

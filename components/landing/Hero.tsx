@@ -57,12 +57,17 @@ const Hero = () => {
               <div className="card-teal rounded-2xl p-6 space-y-5">
                 <div className="flex items-center justify-between border-b border-border/50 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Target className="h-5 w-5 text-primary" />
+                    <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden">
+                      <img
+                        src="/snowflake.png"
+                        alt="Snowflake logo"
+                        className="h-7 w-7 object-contain"
+                      />
                     </div>
+
                     <div>
-                      <h3 className="font-semibold">Pre-Sales Brief</h3>
-                      <p className="text-sm text-muted-foreground">Acme Corp • Enterprise</p>
+                      <h3 className="font-semibold">Pre-Sales Battlecard</h3>
+                      <p className="text-sm text-muted-foreground">Snowflake • Enterprise</p>
                     </div>
                   </div>
                   <span className="text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-full">Live</span>
@@ -72,27 +77,27 @@ const Hero = () => {
                   <BriefSection
                     icon={<Sparkles className="h-4 w-4" />}
                     title="Tech Stack Signals"
-                    items={["Salesforce CRM", "AWS Infrastructure", "Snowflake Data"]}
+                    items={["GitHub", "Jenkins CI/CD", "Kubernetes"]}
                   />
                   <BriefSection
                     icon={<Lightbulb className="h-4 w-4" />}
                     title="Likely Initiatives"
-                    items={["Q1 data migration project", "Sales process automation"]}
+                    items={["Platform security hardening", "Developer velocity (shift-left security)"]}
                   />
                   <BriefSection
                     icon={<MessageSquare className="h-4 w-4" />}
                     title="Discovery Questions"
-                    items={["What's driving the timeline?", "Who owns the decision?"]}
+                    items={["Where do secrets leak most today — PRs, CI, or K8s?"]}
                   />
                   <BriefSection
                     icon={<Target className="h-4 w-4" />}
                     title="Wedge Angles"
-                    items={["Competitor X pain points", "Integration complexity"]}
+                    items={["Pre-commit secret prevention", "Kubernetes + NHI sprawl control"]}
                   />
                   <BriefSection
                     icon={<CheckCircle className="h-4 w-4" />}
                     title="Next Steps"
-                    items={["Schedule technical deep-dive", "Send ROI calculator"]}
+                    items={["Book Security + Platform Eng Technical Dive"]}
                   />
                 </div>
               </div>

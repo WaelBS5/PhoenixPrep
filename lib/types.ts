@@ -68,3 +68,56 @@ export interface ResearchRuleParams {
     spendAnalysis?: boolean;
     technologyFilters?: string[];
 }
+
+// Sales Brief Dashboard Types
+export interface SalesBriefData {
+    companyOverview?: CompanyOverview;
+    techStack?: TechStackItem[];
+    spending?: SpendingAnalysis;
+    angle?: SalesAngle;
+    talkingPoints?: TalkingPoint[];
+}
+
+export interface CompanyOverview {
+    name: string;
+    domain: string;
+    industry?: string;
+    employeeCount?: number;
+    revenue?: string;
+    location?: string;
+    description?: string;
+}
+
+export interface TechStackItem {
+    name: string;
+    vendor: string;
+    category: string;
+    intensity?: string;
+    installCount?: number;
+}
+
+export interface SpendingAnalysis {
+    totalSpend?: string;
+    cloudSpend?: string;
+    topVendors?: Array<{
+        name: string;
+        amount: string;
+    }>;
+    contracts?: Array<{
+        vendor: string;
+        status: string;
+        renewalDate?: string;
+    }>;
+}
+
+export interface SalesAngle {
+    competitivePosition?: string;
+    painPoints?: string[];
+    opportunities?: string[];
+    wedges?: string[];
+}
+
+export interface TalkingPoint {
+    category: string;
+    points: string[];
+}

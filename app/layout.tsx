@@ -4,7 +4,7 @@ import './globals.css';
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: 'HG Research Chat',
+  title: 'Phoenix Prep',
   description: 'Sales intelligence powered by Phoenix MCP',
   icons: {
     icon: '/hg-logo.jpg',
