@@ -36,7 +36,7 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/chat">
                 <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                  Phoenix Awaits
+                  Try Phoenix Prep
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>

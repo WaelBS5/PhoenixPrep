@@ -30,8 +30,8 @@ const features = [
   },
   {
     icon: Share2,
-    title: "Shareable Brief",
-    description: "Export and share prep briefs with your team before any call.",
+    title: "Downloadable Brief",
+    description: "Download and review prep briefs before any call.",
   },
 ];
 

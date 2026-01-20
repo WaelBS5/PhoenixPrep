@@ -9,31 +9,27 @@ import {
 
 const faqs = [
   {
-    question: "What data do you use?",
+    question: "What does Phoenix Prep actually generate?",
     answer:
-      "Phoenix Prep aggregates publicly available data from company websites, job postings, news articles, and other open sources. We don't access any private or proprietary information.",
+      "A pre-call brief: account snapshot, tech stack, sales plays, discovery questions, recommended next steps, etc.",
   },
   {
-    question: "How fresh is the data?",
+    question: "Where does the data come from?",
     answer:
-      "Our data is continuously refreshed from multiple sources. For most accounts, you'll get information that's been updated within the past 30 days.",
+      "Phoenix Prep uses HG Insights MCP, then turns signals into talk tracks and questions for the call.",
   },
   {
-    question: "Can I customize the output?",
+    question: "Can I refine the brief with AI?",
     answer:
-      "Absolutely. You can ask Phoenix for specific types of intelligence — tech stack deep-dives, competitive angles, discovery questions, or whatever your prep needs. Just ask naturally.",
+      "Yes, you can ask questions you're unsure about and Phoenix Prep updates the brief live.",
   },
   {
-    question: "Is this a full AI agent?",
+    question: "Can I export this and use it right before the meeting?",
     answer:
-      "Phoenix Prep is designed specifically for pre-sales prep. It's not a general-purpose AI agent — it's focused on giving you actionable sales intelligence quickly and reliably.",
-  },
-  {
-    question: "Can I share briefs with my team?",
-    answer:
-      "Yes! Every prep brief can be exported and shared with teammates. Great for coordinating before important calls or handing off accounts.",
+      "Yes, you can download the brief and skim it before joining the call.",
   },
 ];
+
 
 const FAQ = () => {
   return (
