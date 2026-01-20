@@ -26,7 +26,7 @@ const initialMessages: Message[] = [
         id: "1",
         role: "assistant",
         content:
-            "Welcome to Phoenix Prep! 👋 I'm here to help you prepare for your next sales call. Tell me which account you're researching, and what kind of context you need — tech stack, discovery questions, competitive angles, or anything else.",
+            "Welcome to Phoenix Prep! 👋 Ask me to prepare you for your next call",
     },
 ];
 
