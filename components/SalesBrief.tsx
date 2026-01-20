@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react';
-import { Database, TrendingUp, Building2, Package } from 'lucide-react';
+import { Database, TrendingUp, Building2, Package, MessageCircleQuestion, Lightbulb, Target, Handshake, Shield, AlertTriangle } from 'lucide-react';
 import { SalesBriefData } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -176,6 +176,217 @@ export default function SalesBrief({ data }: SalesBriefProps) {
                     </div>
                 </Card>
             )}
+
+            {/* GitGuardian Product Recommendations */}
+            {data.productRecommendations && data.productRecommendations.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Shield className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">GitGuardian Product Recommendations</h2>
+                    </div>
+                    <div className="space-y-3">
+                        {data.productRecommendations.map((rec, idx) => (
+                            <div key={idx} className="p-4 rounded-lg bg-secondary/20 border border-border/20">
+                                <div className="flex items-start justify-between mb-2">
+                                    <h3 className="font-semibold text-base">{rec.product}</h3>
+                                    <Badge
+                                        variant={rec.priority === 'high' ? 'default' : rec.priority === 'medium' ? 'secondary' : 'outline'}
+                                        className="text-xs"
+                                    >
+                                        {rec.priority} priority
+                                    </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">{rec.reason}</p>
+                                {rec.talkingPoints && rec.talkingPoints.length > 0 && (
+                                    <ul className="space-y-1 mt-3">
+                                        {rec.talkingPoints.map((point, pidx) => (
+                                            <li key={pidx} className="text-xs flex items-start gap-2">
+                                                <span className="text-primary mt-0.5">•</span>
+                                                <span>{point}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Discovery Questions */}
+            {data.discoveryQuestions && data.discoveryQuestions.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <MessageCircleQuestion className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Discovery Questions</h2>
+                    </div>
+                    <div className="space-y-3">
+                        {data.discoveryQuestions.map((q, idx) => (
+                            <div key={idx} className="p-4 rounded-lg bg-secondary/20 border border-border/20">
+                                <div className="flex items-start gap-3">
+                                    <Badge variant="outline" className="text-xs mt-0.5 shrink-0">
+                                        {q.category}
+                                    </Badge>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium mb-1">{q.question}</p>
+                                        {q.rationale && (
+                                            <p className="text-xs text-muted-foreground italic">{q.rationale}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Pain Points */}
+            {data.painPoints && data.painPoints.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <AlertTriangle className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Identified Pain Points</h2>
+                    </div>
+                    <ul className="space-y-2">
+                        {data.painPoints.map((point, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{point}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
+            )}
+
+            {/* Value Propositions */}
+            {data.valueProps && data.valueProps.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Target className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Value Propositions</h2>
+                    </div>
+                    <ul className="space-y-2">
+                        {data.valueProps.map((prop, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{prop}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
+            )}
+
+            {/* Meeting Opener */}
+            {data.meetingOpener && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Handshake className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Meeting Opener</h2>
+                    </div>
+                    <p className="text-sm leading-relaxed">{data.meetingOpener}</p>
+                </Card>
+            )}
+
+            {/* Meeting Closer */}
+            {data.meetingCloser && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Lightbulb className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Meeting Closer</h2>
+                    </div>
+                    <p className="text-sm leading-relaxed">{data.meetingCloser}</p>
+                </Card>
+            )}
+
+            {/* Talking Points */}
+            {data.talkingPoints && data.talkingPoints.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Target className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Talking Points</h2>
+                    </div>
+                    <div className="space-y-4">
+                        {data.talkingPoints.map((tp, idx) => (
+                            <div key={idx}>
+                                <h3 className="text-sm font-semibold mb-2">{tp.category}</h3>
+                                <ul className="space-y-1">
+                                    {tp.points.map((point, pidx) => (
+                                        <li key={pidx} className="flex items-start gap-2 text-sm">
+                                            <span className="text-primary mt-1">•</span>
+                                            <span>{point}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Objection Handling */}
+            {data.objectionHandling && data.objectionHandling.length > 0 && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Shield className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Objection Handling</h2>
+                    </div>
+                    <div className="space-y-4">
+                        {data.objectionHandling.map((obj, idx) => (
+                            <div key={idx} className="space-y-2">
+                                <div className="flex items-start gap-2">
+                                    <Badge variant="outline" className="text-xs mt-0.5 shrink-0">Objection</Badge>
+                                    <p className="text-sm font-medium">{obj.objection}</p>
+                                </div>
+                                <div className="flex items-start gap-2 pl-6">
+                                    <Badge variant="default" className="text-xs mt-0.5 shrink-0">Response</Badge>
+                                    <p className="text-sm text-muted-foreground">{obj.response}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Competitive Intelligence */}
+            {data.competitiveIntel && (
+                <Card className="p-6 bg-card border-border/30">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Target className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">Competitive Intelligence</h2>
+                    </div>
+                    <div className="space-y-4">
+                        {data.competitiveIntel.competitors && data.competitiveIntel.competitors.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold mb-2">Competitors</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {data.competitiveIntel.competitors.map((comp, idx) => (
+                                        <Badge key={idx} variant="secondary">{comp}</Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {data.competitiveIntel.positioning && (
+                            <div>
+                                <h3 className="text-sm font-semibold mb-2">Positioning</h3>
+                                <p className="text-sm text-muted-foreground">{data.competitiveIntel.positioning}</p>
+                            </div>
+                        )}
+                        {data.competitiveIntel.differentiators && data.competitiveIntel.differentiators.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold mb-2">Differentiators</h3>
+                                <ul className="space-y-1">
+                                    {data.competitiveIntel.differentiators.map((diff, idx) => (
+                                        <li key={idx} className="flex items-start gap-2 text-sm">
+                                            <span className="text-primary mt-1">•</span>
+                                            <span>{diff}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </Card>
+            )}
         </div>
     );
 }
@@ -188,9 +399,9 @@ function EmptyState() {
                     <Database className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Data Visualization Panel</h3>
+                    <h3 className="text-lg font-semibold">Sales Battlecard Dashboard</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        Start a conversation to see company data, tech stack, and spending analysis displayed here in a visual format.
+                        Start researching a company to see actionable sales intelligence here: product recommendations, discovery questions, pain points, meeting openers, and more.
                     </p>
                 </div>
             </div>

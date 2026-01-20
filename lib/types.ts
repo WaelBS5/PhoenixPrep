@@ -56,9 +56,16 @@ export interface ChatRequest {
     messages: Message[];
 }
 
+export interface DashboardUpdate {
+    action: 'add' | 'set' | 'remove' | 'clear';
+    section: keyof SalesBriefData;
+    data: any;
+}
+
 export interface ChatResponse {
     message: Message;
     toolExecutions: ToolExecutionLog[];
+    dashboardUpdates?: DashboardUpdate[];
 }
 
 export interface ResearchRuleParams {
@@ -69,15 +76,7 @@ export interface ResearchRuleParams {
     technologyFilters?: string[];
 }
 
-// Sales Brief Dashboard Types
-export interface SalesBriefData {
-    companyOverview?: CompanyOverview;
-    techStack?: TechStackItem[];
-    spending?: SpendingAnalysis;
-    angle?: SalesAngle;
-    talkingPoints?: TalkingPoint[];
-}
-
+// Sales Brief Dashboard Types - Supporting interfaces first
 export interface CompanyOverview {
     name: string;
     domain: string;
@@ -120,4 +119,46 @@ export interface SalesAngle {
 export interface TalkingPoint {
     category: string;
     points: string[];
+}
+
+export interface DiscoveryQuestion {
+    question: string;
+    category: 'technical' | 'business' | 'pain-point' | 'timing' | 'stakeholder';
+    rationale?: string;
+}
+
+export interface ProductRecommendation {
+    product: string;
+    reason: string;
+    priority: 'high' | 'medium' | 'low';
+    talkingPoints?: string[];
+}
+
+export interface CompetitiveIntel {
+    competitors?: string[];
+    positioning?: string;
+    differentiators?: string[];
+}
+
+export interface ObjectionHandler {
+    objection: string;
+    response: string;
+    category?: string;
+}
+
+// Main interface that uses all the above
+export interface SalesBriefData {
+    companyOverview?: CompanyOverview;
+    techStack?: TechStackItem[];
+    spending?: SpendingAnalysis;
+    angle?: SalesAngle;
+    talkingPoints?: TalkingPoint[];
+    discoveryQuestions?: DiscoveryQuestion[];
+    productRecommendations?: ProductRecommendation[];
+    meetingOpener?: string;
+    meetingCloser?: string;
+    competitiveIntel?: CompetitiveIntel;
+    painPoints?: string[];
+    valueProps?: string[];
+    objectionHandling?: ObjectionHandler[];
 }

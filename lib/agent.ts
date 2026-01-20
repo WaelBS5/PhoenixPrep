@@ -3,6 +3,7 @@
 
 import type { Message, ToolCall, ToolResult, ToolExecutionLog, MCPTool, MCPPrompt } from './types';
 import { listTools, callTool, listPrompts, callPrompt } from './mcpClient';
+import { dashboardToolSchemas, isDashboardTool, executeDashboardTool, DashboardUpdate } from './dashboardTools';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-haiku';
@@ -17,8 +18,9 @@ let cachedPrompts: MCPPrompt[] | null = null;
  */
 export async function runAgentLoop(
     messages: Message[]
-): Promise<{ message: Message; toolExecutions: ToolExecutionLog[] }> {
+): Promise<{ message: Message; toolExecutions: ToolExecutionLog[]; dashboardUpdates: DashboardUpdate[] }> {
     const toolExecutions: ToolExecutionLog[] = [];
+    const dashboardUpdates: DashboardUpdate[] = [];
 
     // Get available tools and convert to OpenAI function format
     const availableTools = await getToolSchemas();
@@ -35,7 +37,7 @@ You MUST use HG Insights Phoenix MCP tools to gather evidence, then convert it i
 - which GitGuardian product to push
 - why now
 
-Do NOT output long raw data dumps. Summarize evidence into sales plays and questions.
+Do NOT output long raw data dumps or JSON. Write natural, conversational markdown that reads like advice from a senior Account Executive.
 
 # GitGuardian Context (What we sell)
 GitGuardian helps companies prevent and remediate leaked secrets across code, Git platforms, and CI/CD.
@@ -127,7 +129,30 @@ A good answer should feel like a senior AE wrote it:
 - specific, not generic
 - clear recommended product focus (Secrets Detection vs Public Monitoring vs NHI Governance)
 - strong talk track + questions
-- minimal fluff`
+- minimal fluff
+
+# Dashboard Tools (IMPORTANT)
+You have access to dashboard tools that let you DIRECTLY update the sales battlecard dashboard. Use these tools whenever:
+1. The user asks to add, remove, or modify items on the dashboard
+2. You generate new content that should appear on the dashboard (questions, opener, closer, etc.)
+
+Available dashboard tools:
+- dashboard_add_question: Add a discovery question (with category: technical/business/pain-point/timing/stakeholder)
+- dashboard_remove_question: Remove a question by index or matching text
+- dashboard_set_opener: Set the meeting opener
+- dashboard_set_closer: Set the meeting closer
+- dashboard_add_pain_point: Add a pain point
+- dashboard_add_value_prop: Add a value proposition
+- dashboard_add_objection: Add an objection with response
+- dashboard_add_product_recommendation: Add a GitGuardian product recommendation
+- dashboard_clear_section: Clear an entire section (discoveryQuestions, painPoints, valueProps, etc.)
+- dashboard_set_competitive_intel: Set competitive intelligence
+
+ALWAYS use these dashboard tools when generating battlecard content. For example:
+- When generating discovery questions, call dashboard_add_question for each question
+- When suggesting a meeting opener, call dashboard_set_opener
+- When the user says "add a closing question", use dashboard_add_question
+- When the user says "remove the pain points", use dashboard_clear_section with section="painPoints"`
 };
 
     const conversationMessages = [systemPrompt, ...messages];
@@ -142,24 +167,46 @@ A good answer should feel like a senior AE wrote it:
     while (response.tool_calls && response.tool_calls.length > 0 && iterations < maxIterations) {
         iterations++;
 
-        // Execute all tool calls IN PARALLEL (HG Insights Best Practice)
-        // Independent requests should be batched with Promise.all
+        // Execute all tool calls - separate dashboard tools from MCP tools
         const toolResults: ToolResult[] = [];
 
-        const executions = await Promise.all(
-            response.tool_calls.map((toolCall: ToolCall) => executeToolCall(toolCall))
-        );
+        for (const toolCall of response.tool_calls) {
+            const args = JSON.parse(toolCall.function.arguments);
+            const startTime = Date.now();
 
-        executions.forEach((execution, index) => {
-            toolExecutions.push(execution);
+            if (isDashboardTool(toolCall.function.name)) {
+                // Execute dashboard tool locally
+                const { result, update } = executeDashboardTool(toolCall.function.name, args);
+                dashboardUpdates.push(update);
 
-            toolResults.push({
-                tool_call_id: response.tool_calls[index].id,
-                role: 'tool',
-                name: response.tool_calls[index].function.name,
-                content: JSON.stringify(execution.result),
-            });
-        });
+                toolExecutions.push({
+                    id: toolCall.id,
+                    toolName: toolCall.function.name,
+                    arguments: args,
+                    result: { success: true, message: result },
+                    timestamp: startTime,
+                    duration: Date.now() - startTime,
+                });
+
+                toolResults.push({
+                    tool_call_id: toolCall.id,
+                    role: 'tool',
+                    name: toolCall.function.name,
+                    content: JSON.stringify({ success: true, message: result }),
+                });
+            } else {
+                // Execute MCP tool
+                const execution = await executeToolCall(toolCall);
+                toolExecutions.push(execution);
+
+                toolResults.push({
+                    tool_call_id: toolCall.id,
+                    role: 'tool',
+                    name: toolCall.function.name,
+                    content: JSON.stringify(execution.result),
+                });
+            }
+        }
 
         // Add assistant message with tool calls
         conversationMessages.push({
@@ -189,6 +236,7 @@ A good answer should feel like a senior AE wrote it:
             timestamp: Date.now(),
         },
         toolExecutions,
+        dashboardUpdates,
     };
 }
 
@@ -334,5 +382,6 @@ async function getToolSchemas(): Promise<any[]> {
         return 0;
     });
 
-    return [...sortedToolSchemas, ...promptSchemas];
+    // Add dashboard tools for direct dashboard manipulation
+    return [...sortedToolSchemas, ...promptSchemas, ...dashboardToolSchemas];
 }

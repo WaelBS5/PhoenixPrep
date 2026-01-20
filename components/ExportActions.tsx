@@ -66,42 +66,40 @@ export default function ExportActions({ data }: ExportActionsProps) {
                 throw new Error('Brief content not found');
             }
 
-            // Get the parent scrollable container
-            const scrollContainer = element.parentElement;
-            const originalOverflow = scrollContainer?.style.overflow;
-            const originalHeight = scrollContainer?.style.height;
-            const originalMaxHeight = scrollContainer?.style.maxHeight;
+            // Clone the element to avoid modifying the visible DOM
+            const clone = element.cloneNode(true) as HTMLElement;
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.width = `${element.offsetWidth}px`;
+            clone.style.height = 'auto';
+            clone.style.maxHeight = 'none';
+            clone.style.overflow = 'visible';
+            clone.style.background = '#0a0a0a';
+            clone.style.padding = '32px';
+            document.body.appendChild(clone);
 
-            // Temporarily remove scroll constraints to capture full content
-            if (scrollContainer) {
-                scrollContainer.style.overflow = 'visible';
-                scrollContainer.style.height = 'auto';
-                scrollContainer.style.maxHeight = 'none';
-            }
+            // Wait for clone to render
+            await new Promise(resolve => setTimeout(resolve, 200));
 
-            // Wait for layout to update
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Get the actual full height of the content
+            const fullHeight = clone.scrollHeight;
+            const fullWidth = clone.scrollWidth;
 
-            // Capture the full element as canvas with improved settings
-            const canvas = await html2canvas(element, {
-                scale: 2, // High quality
+            // Capture the cloned element
+            const canvas = await html2canvas(clone, {
+                scale: 2,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#0a0a0a',
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
-                width: element.scrollWidth,
-                height: element.scrollHeight,
-                scrollY: -window.scrollY,
-                scrollX: -window.scrollX,
+                width: fullWidth,
+                height: fullHeight,
+                windowWidth: fullWidth,
+                windowHeight: fullHeight,
             });
 
-            // Restore original styles
-            if (scrollContainer) {
-                scrollContainer.style.overflow = originalOverflow || '';
-                scrollContainer.style.height = originalHeight || '';
-                scrollContainer.style.maxHeight = originalMaxHeight || '';
-            }
+            // Remove the clone
+            document.body.removeChild(clone);
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
@@ -110,27 +108,33 @@ export default function ExportActions({ data }: ExportActionsProps) {
                 format: 'a4',
             });
 
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 297; // A4 height in mm
+            const pdfWidth = 210; // A4 width in mm
+            const pdfHeight = 297; // A4 height in mm
+            const margin = 10; // 10mm margin
+            const contentWidth = pdfWidth - (margin * 2);
+
+            // Calculate image dimensions to fit within margins
+            const imgWidth = contentWidth;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
             let heightLeft = imgHeight;
-            let position = 0;
+            let position = margin;
 
             // Add first page
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+            heightLeft -= (pdfHeight - margin * 2);
 
             // Add additional pages if content extends beyond first page
             while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
                 pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                position = margin - (imgHeight - heightLeft);
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                heightLeft -= (pdfHeight - margin * 2);
             }
 
             const fileName = data.companyOverview?.name
-                ? `${data.companyOverview.name.replace(/\s+/g, '_')}_Sales_Brief.pdf`
-                : 'Sales_Brief.pdf';
+                ? `${data.companyOverview.name.replace(/\s+/g, '_')}_Sales_Battlecard.pdf`
+                : 'Sales_Battlecard.pdf';
 
             pdf.save(fileName);
 
@@ -191,7 +195,7 @@ export default function ExportActions({ data }: ExportActionsProps) {
 }
 
 function formatBriefAsText(data: SalesBriefData): string {
-    let text = '# SALES BRIEF\n\n';
+    let text = '# SALES BATTLECARD\n\n';
 
     // Company Overview
     if (data.companyOverview) {
@@ -231,9 +235,94 @@ function formatBriefAsText(data: SalesBriefData): string {
         text += '\n';
     }
 
-    // Sales Angle
+    // Product Recommendations
+    if (data.productRecommendations && data.productRecommendations.length > 0) {
+        text += '## GITGUARDIAN PRODUCT RECOMMENDATIONS\n\n';
+        data.productRecommendations.forEach(rec => {
+            text += `### ${rec.product} (${rec.priority} priority)\n`;
+            text += `${rec.reason}\n`;
+            if (rec.talkingPoints && rec.talkingPoints.length > 0) {
+                text += '\nTalking Points:\n';
+                rec.talkingPoints.forEach(tp => text += `- ${tp}\n`);
+            }
+            text += '\n';
+        });
+    }
+
+    // Discovery Questions
+    if (data.discoveryQuestions && data.discoveryQuestions.length > 0) {
+        text += '## DISCOVERY QUESTIONS\n\n';
+        data.discoveryQuestions.forEach((q, idx) => {
+            text += `${idx + 1}. [${q.category}] ${q.question}\n`;
+            if (q.rationale) text += `   _${q.rationale}_\n`;
+        });
+        text += '\n';
+    }
+
+    // Pain Points
+    if (data.painPoints && data.painPoints.length > 0) {
+        text += '## IDENTIFIED PAIN POINTS\n\n';
+        data.painPoints.forEach(p => text += `- ${p}\n`);
+        text += '\n';
+    }
+
+    // Value Props
+    if (data.valueProps && data.valueProps.length > 0) {
+        text += '## VALUE PROPOSITIONS\n\n';
+        data.valueProps.forEach(v => text += `- ${v}\n`);
+        text += '\n';
+    }
+
+    // Meeting Opener
+    if (data.meetingOpener) {
+        text += '## MEETING OPENER\n\n';
+        text += `"${data.meetingOpener}"\n\n`;
+    }
+
+    // Meeting Closer
+    if (data.meetingCloser) {
+        text += '## MEETING CLOSER\n\n';
+        text += `"${data.meetingCloser}"\n\n`;
+    }
+
+    // Objection Handling
+    if (data.objectionHandling && data.objectionHandling.length > 0) {
+        text += '## OBJECTION HANDLING\n\n';
+        data.objectionHandling.forEach(obj => {
+            text += `**Objection:** "${obj.objection}"\n`;
+            text += `**Response:** ${obj.response}\n\n`;
+        });
+    }
+
+    // Competitive Intelligence
+    if (data.competitiveIntel) {
+        text += '## COMPETITIVE INTELLIGENCE\n\n';
+        if (data.competitiveIntel.competitors && data.competitiveIntel.competitors.length > 0) {
+            text += `**Competitors:** ${data.competitiveIntel.competitors.join(', ')}\n\n`;
+        }
+        if (data.competitiveIntel.positioning) {
+            text += `**Positioning:** ${data.competitiveIntel.positioning}\n\n`;
+        }
+        if (data.competitiveIntel.differentiators && data.competitiveIntel.differentiators.length > 0) {
+            text += '**Differentiators:**\n';
+            data.competitiveIntel.differentiators.forEach(d => text += `- ${d}\n`);
+            text += '\n';
+        }
+    }
+
+    // Talking Points
+    if (data.talkingPoints && data.talkingPoints.length > 0) {
+        text += '## TALKING POINTS\n\n';
+        data.talkingPoints.forEach(section => {
+            text += `**${section.category}:**\n`;
+            section.points.forEach(p => text += `- ${p}\n`);
+            text += '\n';
+        });
+    }
+
+    // Sales Angle (legacy)
     if (data.angle) {
-        text += '## YOUR ANGLE\n\n';
+        text += '## SALES ANGLE\n\n';
         if (data.angle.competitivePosition) {
             text += `**Competitive Position:**\n${data.angle.competitivePosition}\n\n`;
         }
@@ -247,16 +336,6 @@ function formatBriefAsText(data: SalesBriefData): string {
             data.angle.wedges.forEach(w => text += `- ${w}\n`);
             text += '\n';
         }
-    }
-
-    // Talking Points
-    if (data.talkingPoints && data.talkingPoints.length > 0) {
-        text += '## TALKING POINTS\n\n';
-        data.talkingPoints.forEach(section => {
-            text += `**${section.category}:**\n`;
-            section.points.forEach(p => text += `- ${p}\n`);
-            text += '\n';
-        });
     }
 
     return text;

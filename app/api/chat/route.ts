@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
         const response: ChatResponse = {
             message: result.message,
             toolExecutions: result.toolExecutions,
+            dashboardUpdates: result.dashboardUpdates,
         };
 
         return NextResponse.json(response);

@@ -11,7 +11,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ScrollArea } from "@/components/ui/scroll-area";
 import SalesBrief from "@/components/SalesBrief";
 import ExportActions from "@/components/ExportActions";
-import type { ToolExecutionLog, SalesBriefData, TechStackItem } from "@/lib/types";
+import type { ToolExecutionLog, SalesBriefData, TechStackItem, DashboardUpdate } from "@/lib/types";
+import { applyDashboardUpdate } from "@/lib/dashboardTools";
 
 interface Message {
     id: string;
@@ -36,6 +37,7 @@ export default function ChatPage() {
     const [briefData, setBriefData] = useState<SalesBriefData | null>(null);
     const [leftPanelWidth, setLeftPanelWidth] = useState(30); // Percentage
     const [isResizing, setIsResizing] = useState(false);
+    const lastParsedMessageIdRef = useRef<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -217,12 +219,40 @@ export default function ChatPage() {
         }
     }, []); // useCallback dependency array
 
-    // Trigger extraction when messages change
+    // Apply dashboard updates from API response
+    const applyDashboardUpdates = useCallback((updates: DashboardUpdate[]) => {
+        if (!updates || updates.length === 0) return;
+
+        console.log('🎯 Applying', updates.length, 'dashboard updates');
+        setBriefData(prev => {
+            let newData = prev || {};
+            for (const update of updates) {
+                console.log('📝 Applying update:', update.action, update.section);
+                newData = applyDashboardUpdate(newData, update);
+            }
+            console.log('✅ Dashboard updated:', newData);
+            return newData;
+        });
+    }, []);
+
+    // Trigger extraction when messages change (for MCP tool data like company info, tech stack)
     useEffect(() => {
         const latestMessage = messages[messages.length - 1];
-        if (latestMessage?.role === 'assistant' && latestMessage.toolExecutions) {
-            console.log('✅ Found tool executions, calling extractBriefData');
-            extractBriefData(latestMessage.toolExecutions);
+
+        // Skip if we've already parsed this message or it's not an assistant message
+        if (!latestMessage || latestMessage.id === lastParsedMessageIdRef.current) {
+            return;
+        }
+
+        if (latestMessage?.role === 'assistant') {
+            // Mark this message as parsed
+            lastParsedMessageIdRef.current = latestMessage.id;
+
+            // Extract tool execution data (company info, tech stack, spending from MCP tools)
+            if (latestMessage.toolExecutions) {
+                console.log('✅ Found tool executions, calling extractBriefData');
+                extractBriefData(latestMessage.toolExecutions);
+            }
         }
     }, [messages, extractBriefData]);
 
@@ -264,6 +294,11 @@ export default function ChatPage() {
             };
 
             setMessages([...newMessages, assistantMessage]);
+
+            // Apply dashboard updates from the AI's tool calls
+            if (data.dashboardUpdates && data.dashboardUpdates.length > 0) {
+                applyDashboardUpdates(data.dashboardUpdates);
+            }
         } catch (error: any) {
             console.error('Error sending message:', error);
             const errorMessage: Message = {
