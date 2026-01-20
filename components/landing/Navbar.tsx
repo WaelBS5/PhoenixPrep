@@ -42,7 +42,7 @@ const Navbar = () => {
 
         <Link href="/chat">
           <Button variant="hero" size="default">
-            Enter The Vault
+            Try It Now
           </Button>
         </Link>
       </div>
