@@ -6,7 +6,7 @@ import { listTools, callTool, listPrompts, callPrompt } from './mcpClient';
 import { dashboardToolSchemas, isDashboardTool, executeDashboardTool, DashboardUpdate } from './dashboardTools';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-haiku';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Cache for MCP discovery to avoid redundant API calls and confusing logs
