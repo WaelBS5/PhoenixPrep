@@ -1,6 +1,10 @@
-# HG Research Chat - MVP v0
+# PhoenixPrep - Powered by HG Insights
 
-A minimal but working prototype for sales intelligence chat powered by HG Insights Phoenix MCP and LLM tool calling.
+PhoenixPrep is a pre-call prep tool that helps sales reps ace their calls. Built for reps selling into tech companies, it turns raw account intelligence from HG Insights into a focused, ready-to-use game plan for every meeting.
+
+Point it at a prospect and it generates a **sales battlecard** — and an exportable **PDF** to review before you hop on the call — so you walk in knowing how to direct the conversation, which product to lead with, what pain points to probe, and the discovery questions that move the deal forward.
+
+![PhoenixPrep home page](docs/PhoenixPrephomepage.png)
 
 ## Features
 
@@ -292,17 +296,13 @@ The current architecture supports all of this without major refactoring.
 - **OpenRouter** - LLM provider (supports multiple models)
 - **Phoenix MCP** - HG Insights MCP server
 
-## License
-
-Proprietary - HG Insights
-
 ## Support
 
 For issues or questions:
 1. Check this README
 2. Review the code comments
 3. Check browser console for errors
-4. Contact the development team
+4. Contact me
 
 ---
 
